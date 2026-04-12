@@ -34,21 +34,16 @@ The converted files are written to a target directory with French locale naming:
 This project depends on **vpagd2odt**, an external project available at:
 https://github.com/coality/vpagd2odt
 
-#### Installation of vpagd2odt
+## Installation
 
-The `install.sh` script will automatically install `vpagd2odt` if it is not found. Alternatively, you can use the update script directly:
+### 1. Clone the repository
 
 ```bash
-# Initial installation or update
-./install_vpagd2odt.sh
-
-# Check for updates
-./install_vpagd2odt.sh --check
+git clone https://github.com/yourusername/vpagd-nextcloud-watcher.git
+cd vpagd-nextcloud-watcher
 ```
 
-For manual installation, see the [vpagd2odt repository](https://github.com/coality/vpagd2odt).
-
-### Required packages
+### 2. Install prerequisites
 
 **Debian/Ubuntu:**
 ```bash
@@ -70,39 +65,38 @@ sudo pacman -S inotify-tools
 sudo zypper install inotify-tools
 ```
 
-## Installation
+### 3. Run the Setup Wizard (Recommended)
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/yourusername/vpagd-nextcloud-watcher.git
-cd vpagd-nextcloud-watcher
-```
-
-### 2. Run the Setup Wizard (Recommended)
-
-The wizard guides you through the entire setup with questions:
+The wizard guides you through the entire setup. It will:
+- Install vpagd2odt automatically if not found
+- Ask for source and target directories
+- Ask for locale preference
+- Ask for Nextcloud integration (optional)
+- Ask for log level
+- Install and enable the systemd service
 
 ```bash
 ./wizard.sh
 ```
 
-It will ask for:
-- Source and target directories
-- vpagd2odt installation
-- Locale preference
-- Nextcloud integration (optional)
-- Log level
-- Service installation (user or system)
+### 4. Manual Installation (Alternative)
 
-### 3. Manual Installation
-
-If you prefer manual configuration:
-
-#### 3a. Run the installer
+If you prefer manual configuration instead of the wizard:
 
 ```bash
+# Run the installer (will offer to install vpagd2odt if missing)
 ./install.sh
+
+# Create config from example
+cp config/vpagd-nextcloud-watcher.conf.example config/vpagd-nextcloud-watcher.conf
+
+# Edit configuration
+nano config/vpagd-nextcloud-watcher.conf
+
+# Install systemd service (as root)
+sudo cp systemd/vpagd-nextcloud-watcher.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now vpagd-nextcloud-watcher
 ```
 
 The installer will:
