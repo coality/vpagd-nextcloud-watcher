@@ -5,11 +5,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$SCRIPT_DIR"
 
+echo "=========================================="
+echo "vpagd-nextcloud-watcher Setup Wizard"
+echo "=========================================="
+echo ""
+
 whiptail --title "vpagd-nextcloud-watcher" --msgbox "Welcome to the vpagd-nextcloud-watcher setup wizard.\n\nThis wizard will help you configure and install everything.\n\nPress Enter to continue." 12 60 2>&1 || true
 
 if ! whiptail --title "Prerequisites" --yesno "Do you want to check prerequisites now?" 8 50 2>&1; then
-    echo "Skipping prerequisite check."
+    echo "[SKIP] Skipping prerequisite check."
 else
+    echo "[INFO] Checking prerequisites..."
     MISSING_PKGS=""
     if ! command -v inotifywait &>/dev/null; then
         MISSING_PKGS="${MISSING_PKGS}inotify-tools "
@@ -19,11 +25,14 @@ else
     fi
 
     if [[ -n "$MISSING_PKGS" ]]; then
+        echo "[WARN] Missing packages: $MISSING_PKGS"
         if whiptail --title "Missing Packages" --yesno "Missing packages: ${MISSING_PKGS}\n\nDo you want to install them now? (requires sudo)" 10 50 2>&1; then
+            echo "[INFO] Installing $MISSING_PKGS..."
             sudo apt-get update && sudo apt-get install -y $MISSING_PKGS 2>&1 | tail -5
+            echo "[OK] Packages installed."
         fi
     else
-        whiptail --title "Prerequisites" --msgbox "All prerequisites are installed." 8 40 2>&1 || true
+        echo "[OK] All prerequisites are installed."
     fi
 fi
 
@@ -33,7 +42,7 @@ VPAGD2ODT_INSTALLED=false
 if command -v vpagd2odt &>/dev/null; then
     VPAGD2ODT_BIN=$(command -v vpagd2odt)
     VPAGD2ODT_INSTALLED=true
-    whiptail --title "vpagd2odt" --msgbox "Found vpagd2odt at: $VPAGD2ODT_BIN" 8 50 2>&1 || true
+    echo "[OK] Found vpagd2odt at: $VPAGD2ODT_BIN"
 else
     INSTALL_VPAGD=false
     if whiptail --title "vpagd2odt" --yesno "vpagd2odt not found.\n\nDo you want to install it automatically?" 10 50 2>&1; then
@@ -42,6 +51,7 @@ else
         if [[ -z "$INSTALL_DIR" ]]; then
             INSTALL_DIR="$HOME/bin"
         fi
+        echo "[INFO] Installation directory: $INSTALL_DIR"
 
         VPAGD_INSTALL_METHOD=$(whiptail --title "Installation Method" --menu "How do you want to install vpagd2odt?" 12 50 3 \
             "script" "Use install script (auto-detect best method)" \
@@ -51,30 +61,33 @@ else
         mkdir -p "$INSTALL_DIR"
 
         if [[ "$VPAGD_INSTALL_METHOD" == "script" ]]; then
-            whiptail --title "Installing vpagd2odt" --msgbox "Installing vpagd2odt to ${INSTALL_DIR}..." 8 50 2>&1 || true
+            echo "[INFO] Installing vpagd2odt via script..."
             cd "$PROJECT_DIR"
-            if bash ./install_vpagd2odt.sh --dir "$INSTALL_DIR"; then
+            if bash ./install_vpagd2odt.sh --dir "$INSTALL_DIR" 2>&1; then
                 VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
                 VPAGD2ODT_INSTALLED=true
-                whiptail --title "Success" --msgbox "vpagd2odt installed successfully!" 8 40 2>&1 || true
+                echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
             else
-                whiptail --title "Error" --msgbox "Failed to install vpagd2odt.\n\nPlease install it manually." 10 50 2>&1 || true
+                echo "[ERROR] Failed to install vpagd2odt via script."
             fi
         elif [[ "$VPAGD_INSTALL_METHOD" == "clone" ]]; then
             if ! command -v git &>/dev/null; then
-                whiptail --title "Error" --msgbox "git is not installed.\n\nPlease install git first." 8 40 2>&1 || true
+                echo "[ERROR] git is not installed."
             else
+                echo "[INFO] Git clone method selected."
                 VPAGD2ODT_TEMP=$(whiptail --title "Cloning vpagd2odt" --inputbox "Enter a temporary directory to clone into:" 10 60 "/tmp/vpagd2odt" 3>&1 1>&2 2>&3)
                 if [[ -n "$VPAGD2ODT_TEMP" ]]; then
-                    whiptail --title "Cloning vpagd2odt" --msgbox "Cloning repository to ${VPAGD2ODT_TEMP}...\n\nThis requires git and go to be installed." 8 50 2>&1 || true
+                    echo "[INFO] Cloning to ${VPAGD2ODT_TEMP}..."
                     rm -rf "$VPAGD2ODT_TEMP"
                     CLONE_OUTPUT=$(git clone https://github.com/coality/vpagd2odt.git "$VPAGD2ODT_TEMP" 2>&1)
                     CLONE_EXIT=$?
                     if [[ $CLONE_EXIT -ne 0 ]]; then
-                        whiptail --title "Error" --msgbox "Failed to clone repository:\n\n${CLONE_OUTPUT}" 12 60 2>&1 || true
+                        echo "[ERROR] Git clone failed:"
+                        echo "$CLONE_OUTPUT"
                     elif [[ -d "$VPAGD2ODT_TEMP" ]]; then
                         cd "$VPAGD2ODT_TEMP"
                         BUILD_OUTPUT=""
+                        echo "[INFO] Building..."
                         if [[ -f "Makefile" ]]; then
                             BUILD_OUTPUT=$(make 2>&1)
                             BUILD_EXIT=$?
@@ -87,9 +100,10 @@ else
                             chmod +x "${INSTALL_DIR}/vpagd2odt"
                             VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
                             VPAGD2ODT_INSTALLED=true
-                            whiptail --title "Success" --msgbox "vpagd2odt installed successfully to ${VPAGD2ODT_BIN}!" 10 50 2>&1 || true
+                            echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
                         else
-                            whiptail --title "Error" --msgbox "Build failed:\n\n${BUILD_OUTPUT}" 12 60 2>&1 || true
+                            echo "[ERROR] Build failed:"
+                            echo "$BUILD_OUTPUT"
                         fi
                         cd "$PROJECT_DIR"
                         rm -rf "$VPAGD2ODT_TEMP"
@@ -97,21 +111,24 @@ else
                 fi
             fi
             if [[ "$VPAGD2ODT_INSTALLED" != "true" ]]; then
-                whiptail --title "Error" --msgbox "Failed to install vpagd2odt via git clone.\n\nPlease install it manually or use the script method." 10 60 2>&1 || true
+                echo "[ERROR] Failed to install vpagd2odt via git clone."
             fi
         fi
     fi
 fi
 
+echo ""
+echo "[INFO] Now asking for configuration..."
+
 SOURCE_DIR=$(whiptail --title "Source Directory" --inputbox "Enter the Nextcloud directory to watch for .vpagd files:\n\nExample: /var/www/nextcloud/data/user/files/vpagd" 12 70 "/var/www/nextcloud/data/user/files/vpagd" 3>&1 1>&2 2>&3)
 if [[ -z "$SOURCE_DIR" ]]; then
-    whiptail --title "Error" --msgbox "Source directory cannot be empty." 8 40 2>&1 || true
+    echo "[ERROR] Source directory cannot be empty."
     exit 1
 fi
 
 TARGET_DIR=$(whiptail --title "Target Directory" --inputbox "Enter the directory where .odt files will be written:\n\nExample: /var/www/nextcloud/data/user/files/odt" 12 70 "/var/www/nextcloud/data/user/files/odt" 3>&1 1>&2 2>&3)
 if [[ -z "$TARGET_DIR" ]]; then
-    whiptail --title "Error" --msgbox "Target directory cannot be empty." 8 40 2>&1 || true
+    echo "[ERROR] Target directory cannot be empty."
     exit 1
 fi
 
@@ -144,11 +161,13 @@ if whiptail --title "Nextcloud Integration" --yesno "Do you want to configure Ne
     NEXTCLOUD_USER=$(whiptail --title "Nextcloud User" --inputbox "Enter the Nextcloud username:" 10 50 "" 3>&1 1>&2 2>&3)
 fi
 
+echo "[INFO] Creating directories..."
 mkdir -p "$(dirname "$LOG_FILE")"
 mkdir -p "$(dirname "$SOURCE_DIR")"
 mkdir -p "$(dirname "$TARGET_DIR")"
 mkdir -p "$(dirname "$VPAGD2ODT_BIN" 2>/dev/null || echo "$HOME/bin")"
 
+echo "[INFO] Writing config file..."
 CONFIG_FILE="$PROJECT_DIR/config/vpagd-nextcloud-watcher.conf"
 
 cat > "$CONFIG_FILE" << EOF
@@ -177,44 +196,55 @@ if [[ "$SERVICE_TYPE" != "none" ]]; then
 
     if [[ "$SERVICE_TYPE" == "system" ]]; then
         SERVICE_DEST="/etc/systemd/system/vpagd-nextcloud-watcher.service"
-        if whiptail --title "Install Service" --yesno "Install system service to $SERVICE_DEST?\n\nRequires root password." 10 50 2>&1; then
-            sudo cp "$SERVICE_FILE" "$SERVICE_DEST"
-            sudo systemctl daemon-reload
+        echo "[INFO] Installing system service to $SERVICE_DEST..."
+        if sudo cp "$SERVICE_FILE" "$SERVICE_DEST" 2>&1; then
+            sudo systemctl daemon-reload 2>&1
             if whiptail --title "Enable Service" --yesno "Enable and start the service now?" 8 40 2>&1; then
-                sudo systemctl enable --now vpagd-nextcloud-watcher
-                whiptail --title "Service Started" --msgbox "Service enabled and started." 8 40 2>&1 || true
+                echo "[INFO] Enabling and starting service..."
+                sudo systemctl enable --now vpagd-nextcloud-watcher 2>&1
+                echo "[OK] Service started."
             fi
+        else
+            echo "[ERROR] Failed to install system service."
         fi
     else
         USER_SERVICE_DIR="$HOME/.config/systemd/user"
         SERVICE_DEST="$USER_SERVICE_DIR/vpagd-nextcloud-watcher.service"
+        echo "[INFO] Installing user service to $SERVICE_DEST..."
         mkdir -p "$USER_SERVICE_DIR"
         cp "$SERVICE_FILE" "$SERVICE_DEST"
 
         if command -v loginctl &>/dev/null; then
             if ! loginctl show-user "$USER" 2>/dev/null | grep -q "Linger"; then
                 if whiptail --title "Enable Linger" --yesno "Enable linger for user $USER?\n\nThis allows user services to start at boot.\n\nRequires root." 10 60 2>&1; then
-                    sudo loginctl enable-linger "$USER"
+                    echo "[INFO] Enabling linger..."
+                    sudo loginctl enable-linger "$USER" 2>&1
                 fi
             fi
         fi
 
-        systemctl --user daemon-reload
+        echo "[INFO] Reloading systemd user daemon..."
+        systemctl --user daemon-reload 2>&1
         if whiptail --title "Start Service" --yesno "Enable and start the service now?" 8 40 2>&1; then
-            systemctl --user enable --now vpagd-nextcloud-watcher
-            whiptail --title "Service Started" --msgbox "Service enabled and started." 8 40 2>&1 || true
+            echo "[INFO] Enabling and starting service..."
+            systemctl --user enable --now vpagd-nextcloud-watcher 2>&1
+            echo "[OK] Service started."
         fi
     fi
 fi
 
-SUMMARY="Setup complete!\n\n"
-SUMMARY+="Config file: $CONFIG_FILE\n"
-SUMMARY+="Source dir: $SOURCE_DIR\n"
-SUMMARY+="Target dir: $TARGET_DIR\n"
-SUMMARY+="Log file: $LOG_FILE\n"
-SUMMARY+="Locale: $LOCALE\n"
+echo ""
+echo "=========================================="
+echo "Setup complete!"
+echo "=========================================="
+echo "Config file: $CONFIG_FILE"
+echo "Source dir: $SOURCE_DIR"
+echo "Target dir: $TARGET_DIR"
+echo "Log file: $LOG_FILE"
+echo "Locale: $LOCALE"
 if [[ "$NEXTCLOUD_SETUP" == "true" ]]; then
-    SUMMARY+="Nextcloud: $NEXTCLOUD_USER\n"
+    echo "Nextcloud: $NEXTCLOUD_USER"
 fi
+echo ""
 
-whiptail --title "Setup Complete" --msgbox "$SUMMARY" 15 60 2>&1 || true
+whiptail --title "Setup Complete" --msgbox "Setup complete!\n\nConfig: $CONFIG_FILE\n\nCheck logs for details." 12 60 2>&1 || true
