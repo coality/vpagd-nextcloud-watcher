@@ -79,18 +79,30 @@ git clone https://github.com/yourusername/vpagd-nextcloud-watcher.git
 cd vpagd-nextcloud-watcher
 ```
 
-### 2. Run the installer
+### 2. Run the Setup Wizard (Recommended)
 
-The installer checks prerequisites and guides you through setup. If `vpagd2odt` is not found, it will offer to install it automatically:
+The wizard guides you through the entire setup with questions:
+
+```bash
+./wizard.sh
+```
+
+It will ask for:
+- Source and target directories
+- vpagd2odt installation
+- Locale preference
+- Nextcloud integration (optional)
+- Log level
+- Service installation (user or system)
+
+### 3. Manual Installation
+
+If you prefer manual configuration:
+
+#### 3a. Run the installer
 
 ```bash
 ./install.sh
-```
-
-Or specify a custom installation path for vpagd2odt:
-
-```bash
-./install.sh /opt/bin
 ```
 
 The installer will:
@@ -99,13 +111,13 @@ The installer will:
 3. Create necessary directories
 4. Verify project files are present
 
-### 3. Create the configuration file
+#### 3b. Create the configuration file
 
 ```bash
 cp config/vpagd-nextcloud-watcher.conf.example config/vpagd-nextcloud-watcher.conf
 ```
 
-### 4. Edit the configuration
+#### 3c. Edit the configuration
 
 Open the config file and set your paths:
 
