@@ -47,9 +47,9 @@ else
     INSTALL_VPAGD=false
     if whiptail --title "vpagd2odt" --yesno "vpagd2odt not found.\n\nDo you want to install it automatically?" 10 50 2>&1; then
         INSTALL_VPAGD=true
-        INSTALL_DIR=$(whiptail --title "Installation Directory" --inputbox "Enter installation directory for vpagd2odt:" 10 60 "$HOME/bin" 3>&1 1>&2 2>&3)
+        INSTALL_DIR=$(whiptail --title "Installation Directory" --inputbox "Enter installation directory for vpagd2odt:" 10 60 "/opt/vpagd2odt" 3>&1 1>&2 2>&3)
         if [[ -z "$INSTALL_DIR" ]]; then
-            INSTALL_DIR="$HOME/bin"
+            INSTALL_DIR="/opt/vpagd2odt"
         fi
         echo "[INFO] Installation directory: $INSTALL_DIR"
 

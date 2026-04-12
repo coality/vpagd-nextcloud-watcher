@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/coality/vpagd2odt"
-INSTALL_DIR="${HOME}/bin"
+INSTALL_DIR="/opt/vpagd2odt"
 BINARY_NAME="vpagd2odt"
 
 RED='\033[0;31m'
