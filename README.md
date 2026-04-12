@@ -333,8 +333,17 @@ sudo systemctl restart vpagd-nextcloud-watcher
 
 ### Locale formatting rules
 
-- **French (`fr`)**: Day name is lowercase (`dimanche`), month name is capitalized (`Mars`)
-- **English (`en`)**: Day name is lowercase (`sunday`), month name is capitalized (`March`)
+The day of week is calculated from the date in the filename.
+
+**French (`fr`):**
+- Format: `Messe du <jour> <jour> <mois> <année>.odt`
+- Example: `Messe du samedi 07 Mars 2026.odt`
+- Day name is lowercase, month name is capitalized
+
+**English (`en`):**
+- Format: `<Day> Mass <day> <month> <year>.odt`
+- Example: `Saturday Mass 07 March 2026.odt`
+- Day name is lowercase, month name is capitalized
 
 ## Systemd Usage
 

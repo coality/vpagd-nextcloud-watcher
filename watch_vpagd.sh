@@ -21,6 +21,16 @@ declare -A ENGLISH_MONTHS=(
     [09]="September" [10]="October" [11]="November" [12]="December"
 )
 
+declare -A FRENCH_DAYS=(
+    [0]="dimanche" [1]="lundi" [2]="mardi" [3]="mercredi"
+    [4]="jeudi" [5]="vendredi" [6]="samedi"
+)
+
+declare -A ENGLISH_DAYS=(
+    [0]="sunday" [1]="monday" [2]="tuesday" [3]="wednesday"
+    [4]="thursday" [5]="friday" [6]="saturday"
+)
+
 log() {
     local level="$1"
     shift
@@ -132,23 +142,42 @@ convert_date_to_localized() {
     local day="$3"
     local locale="${4:-${LOCALE}}"
 
+    local day_of_week
+    day_of_week=$(date -d "${year}-${month}-${day}" '+%w' 2>/dev/null || echo "")
+    if [[ -z "$day_of_week" ]]; then
+        log_error "Invalid date: ${year}-${month}-${day}"
+        return 1
+    fi
+
     local month_name=""
+    local day_name=""
+
     case "$locale" in
         fr)
             month_name="${FRENCH_MONTHS[$month]:-}"
+            day_name="${FRENCH_DAYS[$day_of_week]:-}"
             if [[ -z "$month_name" ]]; then
                 log_error "Unknown month number: $month"
                 return 1
             fi
-            echo "Messe du dimanche ${day} ${month_name} ${year}.odt"
+            if [[ -z "$day_name" ]]; then
+                log_error "Unknown day of week: $day_of_week"
+                return 1
+            fi
+            echo "Messe du ${day_name} ${day} ${month_name} ${year}.odt"
             ;;
         en)
             month_name="${ENGLISH_MONTHS[$month]:-}"
+            day_name="${ENGLISH_DAYS[$day_of_week]:-}"
             if [[ -z "$month_name" ]]; then
                 log_error "Unknown month number: $month"
                 return 1
             fi
-            echo "Sunday Mass ${day} ${month_name} ${year}.odt"
+            if [[ -z "$day_name" ]]; then
+                log_error "Unknown day of week: $day_of_week"
+                return 1
+            fi
+            echo "${day_name^} Mass ${day} ${month_name} ${year}.odt"
             ;;
         *)
             log_error "Unsupported locale: $locale (supported: fr, en)"

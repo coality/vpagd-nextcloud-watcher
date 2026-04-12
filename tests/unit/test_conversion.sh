@@ -91,8 +91,16 @@ test_english_date_output() {
     local month="03"
     local day="08"
 
+    local day_of_week
+    day_of_week=$(date -d "${year}-${month}-${day}" '+%w' 2>/dev/null || echo "0")
+    declare -A ENGLISH_DAYS=(
+        [0]="sunday" [1]="monday" [2]="tuesday" [3]="wednesday"
+        [4]="thursday" [5]="friday" [6]="saturday"
+    )
+    local day_name="${ENGLISH_DAYS[$day_of_week]:-sunday}"
     local month_name="${ENGLISH_MONTHS[$month]}"
-    local expected="Sunday Mass ${day} ${month_name} ${year}.odt"
+
+    local expected="${day_name^} Mass ${day} ${month_name} ${year}.odt"
     local actual="Sunday Mass 08 March 2026.odt"
 
     assert_equals "$expected" "$actual" "English date output format" || return 1
@@ -111,11 +119,10 @@ test_english_all_months() {
 
     for month in "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12"; do
         local month_name="${ENGLISH_MONTHS[$month]}"
-        local expected="Sunday Mass ${day} ${month_name} ${year}.odt"
-        local pattern="Sunday Mass ${day} .+ ${year}.odt"
+        local pattern="[A-Z][a-z]+ Mass ${day} ${month_name} ${year}.odt"
 
-        if [[ ! "$expected" =~ $pattern ]]; then
-            echo "Output format check failed for month $month: $expected"
+        if [[ ! "$month_name" =~ ^[A-Z] ]]; then
+            echo "Month name should start with uppercase: $month_name"
             return 1
         fi
     done
@@ -129,13 +136,20 @@ test_french_date_output() {
         [05]="Mai" [06]="Juin" [07]="Juillet" [08]="Août"
         [09]="Septembre" [10]="Octobre" [11]="Novembre" [12]="Décembre"
     )
+    declare -A FRENCH_DAYS=(
+        [0]="dimanche" [1]="lundi" [2]="mardi" [3]="mercredi"
+        [4]="jeudi" [5]="vendredi" [6]="samedi"
+    )
 
     local year="2026"
     local month="03"
     local day="08"
 
+    local day_of_week
+    day_of_week=$(date -d "${year}-${month}-${day}" '+%w' 2>/dev/null || echo "0")
+    local day_name="${FRENCH_DAYS[$day_of_week]:-dimanche}"
     local month_name="${FRENCH_MONTHS[$month]}"
-    local expected="Messe du dimanche ${day} ${month_name} ${year}.odt"
+    local expected="Messe du ${day_name} ${day} ${month_name} ${year}.odt"
     local actual="Messe du dimanche 08 Mars 2026.odt"
 
     assert_equals "$expected" "$actual" "French date output format" || return 1
@@ -148,17 +162,25 @@ test_all_months_produce_correct_output() {
         [05]="Mai" [06]="Juin" [07]="Juillet" [08]="Août"
         [09]="Septembre" [10]="Octobre" [11]="Novembre" [12]="Décembre"
     )
+    declare -A FRENCH_DAYS=(
+        [0]="dimanche" [1]="lundi" [2]="mardi" [3]="mercredi"
+        [4]="jeudi" [5]="vendredi" [6]="samedi"
+    )
 
     local year="2026"
+    local month="03"
     local day="08"
+    local day_of_week
+    day_of_week=$(date -d "${year}-${month}-${day}" '+%w' 2>/dev/null || echo "0")
+    local day_name="${FRENCH_DAYS[$day_of_week]:-dimanche}"
 
-    for month in "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12"; do
-        local month_name="${FRENCH_MONTHS[$month]}"
-        local expected="Messe du dimanche ${day} ${month_name} ${year}.odt"
-        local pattern="Messe du dimanche ${day} .+ ${year}.odt"
+    for m in "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12"; do
+        local month_name="${FRENCH_MONTHS[$m]}"
+        local expected="Messe du ${day_name} ${day} ${month_name} ${year}.odt"
+        local pattern="Messe du .+ ${day} .+ ${year}.odt"
 
         if [[ ! "$expected" =~ $pattern ]]; then
-            echo "Output format check failed for month $month: $expected"
+            echo "Output format check failed for month $m: $expected"
             return 1
         fi
     done
