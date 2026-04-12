@@ -67,6 +67,8 @@ sudo zypper install inotify-tools
 
 ### 3. Run the Setup Wizard (Recommended)
 
+**Note:** You need sudo rights to run the wizard.
+
 The wizard guides you through the entire setup. It will:
 - Install vpagd2odt automatically if not found
 - Ask for source and target directories
