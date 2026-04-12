@@ -90,24 +90,25 @@ else
                         ls -la
                         BUILD_OUTPUT=""
                         echo "[INFO] Building..."
-                        if [[ -f "Makefile" ]]; then
-                            echo "[INFO] Found Makefile, running make..."
-                            BUILD_OUTPUT=$(make 2>&1)
-                            BUILD_EXIT=$?
-                            echo "[DEBUG] Make exit code: $BUILD_EXIT"
-                        elif [[ -f "go.mod" ]]; then
-                            echo "[INFO] Found go.mod, running go build..."
-                            BUILD_OUTPUT=$(go build -o vpagd2odt 2>&1)
-                            BUILD_EXIT=$?
-                            echo "[DEBUG] Go build exit code: $BUILD_EXIT"
-                        elif [[ -f "build.sh" ]]; then
+                        if [[ -f "build.sh" ]]; then
                             echo "[INFO] Found build.sh, running..."
                             chmod +x build.sh
                             BUILD_OUTPUT=$(./build.sh 2>&1)
                             BUILD_EXIT=$?
                             echo "[DEBUG] build.sh exit code: $BUILD_EXIT"
+                            if [[ -f "dist/vpagd2odt/vpagd2odt" ]]; then
+                                mkdir -p "${INSTALL_DIR}"
+                                cp dist/vpagd2odt/vpagd2odt "${INSTALL_DIR}/vpagd2odt"
+                                chmod +x "${INSTALL_DIR}/vpagd2odt"
+                                VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
+                                VPAGD2ODT_INSTALLED=true
+                                echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
+                            else
+                                echo "[ERROR] build.sh ran but binary not found in dist/vpagd2odt/"
+                                echo "$BUILD_OUTPUT"
+                            fi
                         elif [[ -f "pyproject.toml" ]]; then
-                            echo "[INFO] Found pyproject.toml, installing Python package..."
+                            echo "[INFO] Found pyproject.toml, installing via pip..."
                             BUILD_OUTPUT=$(pip install -e . 2>&1)
                             BUILD_EXIT=$?
                             echo "[DEBUG] pip install exit code: $BUILD_EXIT"
@@ -116,23 +117,39 @@ else
                                 VPAGD2ODT_INSTALLED=true
                                 echo "[OK] vpagd2odt installed via pip: ${VPAGD2ODT_BIN}"
                             else
-                                echo "[ERROR] pip install succeeded but vpagd2odt command not found"
+                                echo "[ERROR] pip install succeeded but vpagd2odt command not found in PATH"
+                                echo "$BUILD_OUTPUT"
+                            fi
+                        elif [[ -f "Makefile" ]]; then
+                            echo "[INFO] Found Makefile, running make..."
+                            BUILD_OUTPUT=$(make 2>&1)
+                            BUILD_EXIT=$?
+                            echo "[DEBUG] Make exit code: $BUILD_EXIT"
+                            if [[ -f "vpagd2odt" ]]; then
+                                mkdir -p "${INSTALL_DIR}"
+                                cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
+                                chmod +x "${INSTALL_DIR}/vpagd2odt"
+                                VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
+                                VPAGD2ODT_INSTALLED=true
+                                echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
+                            fi
+                        elif [[ -f "go.mod" ]]; then
+                            echo "[INFO] Found go.mod, running go build..."
+                            BUILD_OUTPUT=$(go build -o vpagd2odt 2>&1)
+                            BUILD_EXIT=$?
+                            echo "[DEBUG] Go build exit code: $BUILD_EXIT"
+                            if [[ -f "vpagd2odt" ]]; then
+                                mkdir -p "${INSTALL_DIR}"
+                                cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
+                                chmod +x "${INSTALL_DIR}/vpagd2odt"
+                                VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
+                                VPAGD2ODT_INSTALLED=true
+                                echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
                             fi
                         else
                             echo "[WARN] No build system found."
                             echo "[INFO] Available files: $(ls -1)"
                             BUILD_OUTPUT="No build system found"
-                        fi
-                        if [[ -f "vpagd2odt" ]]; then
-                            mkdir -p "${INSTALL_DIR}"
-                            cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
-                            chmod +x "${INSTALL_DIR}/vpagd2odt"
-                            VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
-                            VPAGD2ODT_INSTALLED=true
-                            echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
-                        else
-                            echo "[ERROR] Build failed:"
-                            echo "$BUILD_OUTPUT"
                         fi
                         cd "$PROJECT_DIR"
                         rm -rf "$VPAGD2ODT_TEMP"
