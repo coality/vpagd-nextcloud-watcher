@@ -36,37 +36,17 @@ https://github.com/coality/vpagd2odt
 
 #### Installation of vpagd2odt
 
-**Option 1: Build from source**
-```bash
-git clone https://github.com/coality/vpagd2odt.git
-cd vpagd2odt
-# Follow the build instructions in that repository
-# Place the compiled binary somewhere in your PATH
-```
+The `install.sh` script will automatically install `vpagd2odt` if it is not found. Alternatively, you can use the update script directly:
 
-**Option 2: Download pre-built binary**
-Check the [vpagd2odt releases page](https://github.com/coality/vpagd2odt/releases) for pre-built binaries.
-
-**Option 3: Install to ~/bin**
 ```bash
-mkdir -p ~/bin
-# Download or copy vpagd2odt to ~/bin/vpagd2odt
-chmod +x ~/bin/vpagd2odt
-# Add ~/bin to your PATH if not already done
-export PATH="$HOME/bin:$PATH"
-```
-
-**Option 4: Using the update script**
-```bash
-# Initial installation
+# Initial installation or update
 ./update_vpagd2odt.sh
 
 # Check for updates
 ./update_vpagd2odt.sh --check
-
-# Update to latest version
-./update_vpagd2odt.sh
 ```
+
+For manual installation, see the [vpagd2odt repository](https://github.com/coality/vpagd2odt).
 
 ### Required packages
 
