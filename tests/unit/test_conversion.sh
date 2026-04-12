@@ -80,6 +80,49 @@ test_conversion_in_subdirectory() {
     return 0
 }
 
+test_english_date_output() {
+    declare -A ENGLISH_MONTHS=(
+        [01]="January" [02]="February" [03]="March" [04]="April"
+        [05]="May" [06]="June" [07]="July" [08]="August"
+        [09]="September" [10]="October" [11]="November" [12]="December"
+    )
+
+    local year="2026"
+    local month="03"
+    local day="08"
+
+    local month_name="${ENGLISH_MONTHS[$month]}"
+    local expected="Sunday Mass ${day} ${month_name} ${year}.odt"
+    local actual="Sunday Mass 08 March 2026.odt"
+
+    assert_equals "$expected" "$actual" "English date output format" || return 1
+    return 0
+}
+
+test_english_all_months() {
+    declare -A ENGLISH_MONTHS=(
+        [01]="January" [02]="February" [03]="March" [04]="April"
+        [05]="May" [06]="June" [07]="July" [08]="August"
+        [09]="September" [10]="October" [11]="November" [12]="December"
+    )
+
+    local year="2026"
+    local day="08"
+
+    for month in "01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12"; do
+        local month_name="${ENGLISH_MONTHS[$month]}"
+        local expected="Sunday Mass ${day} ${month_name} ${year}.odt"
+        local pattern="Sunday Mass ${day} .+ ${year}.odt"
+
+        if [[ ! "$expected" =~ $pattern ]]; then
+            echo "Output format check failed for month $month: $expected"
+            return 1
+        fi
+    done
+
+    return 0
+}
+
 test_french_date_output() {
     declare -A FRENCH_MONTHS=(
         [01]="Janvier" [02]="Février" [03]="Mars" [04]="Avril"
@@ -183,6 +226,8 @@ main() {
     run_test "test_month_capitalization" test_month_capitalization
     run_test "test_day_capitalization_lowercase" test_day_capitalization_lowercase
     run_test "test_day_capitalization_is_lowercase" test_day_capitalization_is_lowercase
+    run_test "test_english_date_output" test_english_date_output
+    run_test "test_english_all_months" test_english_all_months
     run_test "test_conversion_produces_output_file" test_conversion_produces_output_file
     run_test "test_conversion_overwrites_existing_file" test_conversion_overwrites_existing_file
     run_test "test_conversion_in_subdirectory" test_conversion_in_subdirectory

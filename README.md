@@ -163,6 +163,7 @@ All configuration is done via the `config/vpagd-nextcloud-watcher.conf` file.
 | `VPAGD2ODT_BIN` | Yes | Full path to the vpagd2odt binary |
 | `LOG_FILE` | No | Path to the log file (default: `./vpagd-watcher.log`) |
 | `LOG_LEVEL` | No | Log level: `DEBUG`, `INFO`, `WARN`, `ERROR` (default: `INFO`) |
+| `LOCALE` | No | Output locale: `fr` for French, `en` for English (default: `fr`) |
 
 ### Configuration file format
 
@@ -181,6 +182,9 @@ LOG_FILE="/home/user/vpagd-nextcloud-watcher/vpagd-watcher.log"
 
 # Log level: DEBUG, INFO, WARN, ERROR
 LOG_LEVEL="INFO"
+
+# Output locale: fr (French) or en (English)
+LOCALE="fr"
 ```
 
 ## How to Use
@@ -303,6 +307,34 @@ ls -la /path/to/output/odt/
 ```
 Messe du dimanche 08 Mars 2026.odt
 ```
+
+## Localization
+
+The output filename locale is configurable via the `LOCALE` setting.
+
+### Supported locales
+
+| Locale | Description | Example output |
+|--------|-------------|----------------|
+| `fr` | French (default) | `Messe du dimanche 08 Mars 2026.odt` |
+| `en` | English | `Sunday Mass 08 March 2026.odt` |
+
+### Changing the locale
+
+Edit your config file and set:
+```ini
+LOCALE="en"
+```
+
+Then restart the service:
+```bash
+sudo systemctl restart vpagd-nextcloud-watcher
+```
+
+### Locale formatting rules
+
+- **French (`fr`)**: Day name is lowercase (`dimanche`), month name is capitalized (`Mars`)
+- **English (`en`)**: Day name is lowercase (`sunday`), month name is capitalized (`March`)
 
 ## Systemd Usage
 

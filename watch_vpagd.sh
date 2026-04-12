@@ -7,11 +7,18 @@ TARGET_DIR=""
 VPAGD2ODT_BIN=""
 LOG_FILE=""
 LOG_LEVEL="INFO"
+LOCALE="fr"
 
 declare -A FRENCH_MONTHS=(
     [01]="Janvier" [02]="Février" [03]="Mars" [04]="Avril"
     [05]="Mai" [06]="Juin" [07]="Juillet" [08]="Août"
     [09]="Septembre" [10]="Octobre" [11]="Novembre" [12]="Décembre"
+)
+
+declare -A ENGLISH_MONTHS=(
+    [01]="January" [02]="February" [03]="March" [04]="April"
+    [05]="May" [06]="June" [07]="July" [08]="August"
+    [09]="September" [10]="October" [11]="November" [12]="December"
 )
 
 log() {
@@ -72,6 +79,11 @@ validate_config() {
         return 1
     fi
 
+    if [[ "$LOCALE" != "fr" && "$LOCALE" != "en" ]]; then
+        log_error "LOCALE must be 'fr' or 'en', got: $LOCALE"
+        return 1
+    fi
+
     return 0
 }
 
@@ -114,18 +126,35 @@ extract_date_from_filename() {
     echo "${year} ${month} ${day}"
 }
 
-convert_date_to_french() {
+convert_date_to_localized() {
     local year="$1"
     local month="$2"
     local day="$3"
+    local locale="${4:-${LOCALE}}"
 
-    local month_name="${FRENCH_MONTHS[$month]:-}"
-    if [[ -z "$month_name" ]]; then
-        log_error "Unknown month number: $month"
-        return 1
-    fi
-
-    echo "Messe du dimanche ${day} ${month_name} ${year}.odt"
+    local month_name=""
+    case "$locale" in
+        fr)
+            month_name="${FRENCH_MONTHS[$month]:-}"
+            if [[ -z "$month_name" ]]; then
+                log_error "Unknown month number: $month"
+                return 1
+            fi
+            echo "Messe du dimanche ${day} ${month_name} ${year}.odt"
+            ;;
+        en)
+            month_name="${ENGLISH_MONTHS[$month]:-}"
+            if [[ -z "$month_name" ]]; then
+                log_error "Unknown month number: $month"
+                return 1
+            fi
+            echo "Sunday Mass ${day} ${month_name} ${year}.odt"
+            ;;
+        *)
+            log_error "Unsupported locale: $locale (supported: fr, en)"
+            return 1
+            ;;
+    esac
 }
 
 convert_vpagd_to_odt() {
@@ -160,7 +189,7 @@ process_vpagd_file() {
     read -r year month day <<< "$date_info"
 
     local output_filename
-    output_filename=$(convert_date_to_french "$year" "$month" "$day") || return 1
+    output_filename=$(convert_date_to_localized "$year" "$month" "$day") || return 1
 
     local target_path="${TARGET_DIR}/${output_filename}"
 
@@ -172,6 +201,7 @@ run_watcher() {
     log_info "Source directory: $SOURCE_DIR"
     log_info "Target directory: $TARGET_DIR"
     log_info "Using vpagd2odt: $VPAGD2ODT_BIN"
+    log_info "Locale: $LOCALE"
     log_info "Log file: $LOG_FILE"
 
     inotifywait -m -r -e close_write -e moved_to \
@@ -227,6 +257,9 @@ load_config() {
                 ;;
             LOG_LEVEL)
                 LOG_LEVEL="$value"
+                ;;
+            LOCALE)
+                LOCALE="$value"
                 ;;
             *)
                 log_warn "Unknown config key: $key"
