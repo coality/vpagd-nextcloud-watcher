@@ -1,0 +1,290 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SOURCE_DIR=""
+TARGET_DIR=""
+VPAGD2ODT_BIN=""
+LOG_FILE=""
+LOG_LEVEL="INFO"
+
+declare -A FRENCH_MONTHS=(
+    [01]="Janvier" [02]="Février" [03]="Mars" [04]="Avril"
+    [05]="Mai" [06]="Juin" [07]="Juillet" [08]="Août"
+    [09]="Septembre" [10]="Octobre" [11]="Novembre" [12]="Décembre"
+)
+
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[${timestamp}] [${level}] ${message}" | tee -a "$LOG_FILE" 2>/dev/null || echo "[${timestamp}] [${level}] ${message}"
+}
+
+log_info() {
+    log "INFO" "$@"
+}
+
+log_warn() {
+    log "WARN" "$@"
+}
+
+log_error() {
+    log "ERROR" "$@"
+}
+
+log_debug() {
+    if [[ "$LOG_LEVEL" == "DEBUG" ]]; then
+        log "DEBUG" "$@"
+    fi
+}
+
+validate_config() {
+    if [[ -z "$SOURCE_DIR" ]]; then
+        log_error "SOURCE_DIR is not configured"
+        return 1
+    fi
+
+    if [[ -z "$TARGET_DIR" ]]; then
+        log_error "TARGET_DIR is not configured"
+        return 1
+    fi
+
+    if [[ -z "$VPAGD2ODT_BIN" ]]; then
+        log_error "VPAGD2ODT_BIN is not configured"
+        return 1
+    fi
+
+    if [[ ! -d "$SOURCE_DIR" ]]; then
+        log_error "SOURCE_DIR does not exist: $SOURCE_DIR"
+        return 1
+    fi
+
+    if [[ ! -d "$TARGET_DIR" ]]; then
+        log_error "TARGET_DIR does not exist: $TARGET_DIR"
+        return 1
+    fi
+
+    if [[ ! -x "$VPAGD2ODT_BIN" ]]; then
+        log_error "VPAGD2ODT_BIN is not executable or not found: $VPAGD2ODT_BIN"
+        return 1
+    fi
+
+    return 0
+}
+
+validate_filename() {
+    local filename="$1"
+
+    if [[ ! "$filename" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.vpagd$ ]]; then
+        log_debug "Filename does not match required format YYYY.MM.DD.vpagd: $filename"
+        return 1
+    fi
+
+    local year="${filename:0:4}"
+    local month="${filename:5:2}"
+    local day="${filename:8:2}"
+
+    if [[ "$month" -lt 01 || "$month" -gt 12 ]]; then
+        log_warn "Invalid month in filename: $month (file: $filename)"
+        return 1
+    fi
+
+    if [[ "$day" -lt 01 || "$day" -gt 31 ]]; then
+        log_warn "Invalid day in filename: $day (file: $filename)"
+        return 1
+    fi
+
+    return 0
+}
+
+extract_date_from_filename() {
+    local filename="$1"
+
+    if ! validate_filename "$filename"; then
+        return 1
+    fi
+
+    local year="${filename:0:4}"
+    local month="${filename:5:2}"
+    local day="${filename:8:2}"
+
+    echo "${year} ${month} ${day}"
+}
+
+convert_date_to_french() {
+    local year="$1"
+    local month="$2"
+    local day="$3"
+
+    local month_name="${FRENCH_MONTHS[$month]:-}"
+    if [[ -z "$month_name" ]]; then
+        log_error "Unknown month number: $month"
+        return 1
+    fi
+
+    echo "Messe du dimanche ${day} ${month_name} ${year}.odt"
+}
+
+convert_vpagd_to_odt() {
+    local source_file="$1"
+    local target_file="$2"
+
+    log_info "Converting: $source_file -> $target_file"
+
+    if ! "$VPAGD2ODT_BIN" "$source_file" "$target_file"; then
+        log_error "Conversion failed for: $source_file"
+        return 1
+    fi
+
+    log_info "Conversion successful: $target_file"
+    return 0
+}
+
+process_vpagd_file() {
+    local full_path="$1"
+    local filename
+    filename=$(basename "$full_path")
+
+    log_debug "Processing file: $full_path"
+
+    if ! validate_filename "$filename"; then
+        return 0
+    fi
+
+    local date_info
+    date_info=$(extract_date_from_filename "$filename") || return 1
+
+    read -r year month day <<< "$date_info"
+
+    local output_filename
+    output_filename=$(convert_date_to_french "$year" "$month" "$day") || return 1
+
+    local target_path="${TARGET_DIR}/${output_filename}"
+
+    convert_vpagd_to_odt "$full_path" "$target_path"
+}
+
+run_watcher() {
+    log_info "Starting vpagd-nextcloud-watcher"
+    log_info "Source directory: $SOURCE_DIR"
+    log_info "Target directory: $TARGET_DIR"
+    log_info "Using vpagd2odt: $VPAGD2ODT_BIN"
+    log_info "Log file: $LOG_FILE"
+
+    inotifywait -m -r -e close_write -e moved_to \
+        --format '%w%f' \
+        --include '\.vpagd$' \
+        "$SOURCE_DIR" 2>&1 | while read -r file_path; do
+
+        log_debug "Event detected for: $file_path"
+
+        if [[ -f "$file_path" ]]; then
+            process_vpagd_file "$file_path"
+        else
+            log_debug "File no longer exists or is not accessible: $file_path"
+        fi
+
+    done
+}
+
+load_config() {
+    local config_file="$1"
+
+    if [[ ! -f "$config_file" ]]; then
+        log_error "Config file not found: $config_file"
+        return 1
+    fi
+
+    log_debug "Loading config from: $config_file"
+
+    while IFS='=' read -r key value; do
+        key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        value="${value%\"}"
+        value="${value#\"}"
+        value="${value%\'}"
+        value="${value#\'}"
+
+        if [[ -z "$key" || "$key" =~ ^# ]]; then
+            continue
+        fi
+
+        case "$key" in
+            SOURCE_DIR)
+                SOURCE_DIR="$value"
+                ;;
+            TARGET_DIR)
+                TARGET_DIR="$value"
+                ;;
+            VPAGD2ODT_BIN)
+                VPAGD2ODT_BIN="$value"
+                ;;
+            LOG_FILE)
+                LOG_FILE="$value"
+                ;;
+            LOG_LEVEL)
+                LOG_LEVEL="$value"
+                ;;
+            *)
+                log_warn "Unknown config key: $key"
+                ;;
+        esac
+    done < "$config_file"
+
+    return 0
+}
+
+main() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    local config_file="${script_dir}/config/vpagd-nextcloud-watcher.conf"
+
+    if [[ -n "${CONFIG_FILE:-}" ]]; then
+        config_file="$CONFIG_FILE"
+    fi
+
+    if [[ $# -gt 0 && ( "$1" == "-c" || "$1" == "--config" ) ]]; then
+        config_file="$2"
+        shift 2
+    fi
+
+    if [[ $# -gt 0 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
+        echo "Usage: $0 [OPTIONS]"
+        echo ""
+        echo "Options:"
+        echo "  -c, --config FILE    Use alternate config file"
+        echo "  -h, --help          Show this help message"
+        echo ""
+        echo "Environment variables:"
+        echo "  CONFIG_FILE         Alternate config file path"
+        echo ""
+        echo "Config file: $config_file"
+        exit 0
+    fi
+
+    if ! load_config "$config_file"; then
+        log_error "Failed to load config from: $config_file"
+        exit 1
+    fi
+
+    if [[ -z "$LOG_FILE" ]]; then
+        LOG_FILE="${script_dir}/vpagd-watcher.log"
+    fi
+
+    if ! validate_config; then
+        log_error "Configuration validation failed"
+        exit 1
+    fi
+
+    log_info "Configuration loaded successfully"
+
+    run_watcher
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

@@ -1,0 +1,26 @@
+# Project-specific
+*.log
+vpagd-nextcloud-watcher.conf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+*.bak
+*.swp
+*~
+
+# Test artifacts
+tests/tmp/
+tests/output/
+*.odt
+!.gitkeep
+
+# Build artifacts
+vpagd2odt
+
+# IDE
+.idea/
+*.sublime-*
+.vscode/

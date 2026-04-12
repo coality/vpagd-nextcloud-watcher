@@ -1,0 +1,5 @@
+SOURCE_DIR="/path/to/nextcloud/vpagd"
+TARGET_DIR="/path/to/output/odt"
+VPAGD2ODT_BIN="/home/user/bin/vpagd2odt"
+LOG_FILE="/home/user/vpagd-nextcloud-watcher/vpagd-watcher.log"
+LOG_LEVEL="INFO"

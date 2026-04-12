@@ -1,0 +1,20 @@
+[Unit]
+Description=Watch Nextcloud directory for .vpagd files and convert them to .odt
+After=network.target
+
+[Service]
+Type=simple
+User=%u
+Group=%g
+WorkingDirectory=%h/vpagd-nextcloud-watcher
+ExecStart=/home/%u/vpagd-nextcloud-watcher/watch_vpagd.sh
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+Environment=HOME=%h
+Environment=CONFIG_FILE=%h/vpagd-nextcloud-watcher/config/vpagd-nextcloud-watcher.conf
+
+[Install]
+WantedBy=default.target
