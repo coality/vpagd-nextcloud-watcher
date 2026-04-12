@@ -61,31 +61,43 @@ else
                 whiptail --title "Error" --msgbox "Failed to install vpagd2odt.\n\nPlease install it manually." 10 50 2>&1 || true
             fi
         elif [[ "$VPAGD_INSTALL_METHOD" == "clone" ]]; then
-            VPAGD2ODT_TEMP=$(whiptail --title "Cloning vpagd2odt" --inputbox "Enter a temporary directory to clone into:" 10 60 "/tmp/vpagd2odt" 3>&1 1>&2 2>&3)
-            if [[ -n "$VPAGD2ODT_TEMP" ]]; then
-                whiptail --title "Cloning vpagd2odt" --msgbox "Cloning repository to ${VPAGD2ODT_TEMP}...\n\nThis requires git and go to be installed." 8 50 2>&1 || true
-                rm -rf "$VPAGD2ODT_TEMP"
-                git clone https://github.com/coality/vpagd2odt.git "$VPAGD2ODT_TEMP" 2>&1 | tail -5
-                if [[ -d "$VPAGD2ODT_TEMP" ]]; then
-                    cd "$VPAGD2ODT_TEMP"
-                    if [[ -f "Makefile" ]]; then
-                        make 2>&1 | tail -3
-                    elif [[ -f "go.mod" ]]; then
-                        go build -o vpagd2odt 2>&1 | tail -3
-                    fi
-                    if [[ -f "vpagd2odt" ]]; then
-                        cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
-                        chmod +x "${INSTALL_DIR}/vpagd2odt"
-                        VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
-                        VPAGD2ODT_INSTALLED=true
-                        whiptail --title "Success" --msgbox "vpagd2odt installed successfully to ${VPAGD2ODT_BIN}!" 8 50 2>&1 || true
-                    fi
-                    cd "$PROJECT_DIR"
+            if ! command -v git &>/dev/null; then
+                whiptail --title "Error" --msgbox "git is not installed.\n\nPlease install git first." 8 40 2>&1 || true
+            else
+                VPAGD2ODT_TEMP=$(whiptail --title "Cloning vpagd2odt" --inputbox "Enter a temporary directory to clone into:" 10 60 "/tmp/vpagd2odt" 3>&1 1>&2 2>&3)
+                if [[ -n "$VPAGD2ODT_TEMP" ]]; then
+                    whiptail --title "Cloning vpagd2odt" --msgbox "Cloning repository to ${VPAGD2ODT_TEMP}...\n\nThis requires git and go to be installed." 8 50 2>&1 || true
                     rm -rf "$VPAGD2ODT_TEMP"
+                    CLONE_OUTPUT=$(git clone https://github.com/coality/vpagd2odt.git "$VPAGD2ODT_TEMP" 2>&1)
+                    CLONE_EXIT=$?
+                    if [[ $CLONE_EXIT -ne 0 ]]; then
+                        whiptail --title "Error" --msgbox "Failed to clone repository:\n\n${CLONE_OUTPUT}" 12 60 2>&1 || true
+                    elif [[ -d "$VPAGD2ODT_TEMP" ]]; then
+                        cd "$VPAGD2ODT_TEMP"
+                        BUILD_OUTPUT=""
+                        if [[ -f "Makefile" ]]; then
+                            BUILD_OUTPUT=$(make 2>&1)
+                            BUILD_EXIT=$?
+                        elif [[ -f "go.mod" ]]; then
+                            BUILD_OUTPUT=$(go build -o vpagd2odt 2>&1)
+                            BUILD_EXIT=$?
+                        fi
+                        if [[ -f "vpagd2odt" ]]; then
+                            cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
+                            chmod +x "${INSTALL_DIR}/vpagd2odt"
+                            VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
+                            VPAGD2ODT_INSTALLED=true
+                            whiptail --title "Success" --msgbox "vpagd2odt installed successfully to ${VPAGD2ODT_BIN}!" 10 50 2>&1 || true
+                        else
+                            whiptail --title "Error" --msgbox "Build failed:\n\n${BUILD_OUTPUT}" 12 60 2>&1 || true
+                        fi
+                        cd "$PROJECT_DIR"
+                        rm -rf "$VPAGD2ODT_TEMP"
+                    fi
                 fi
             fi
             if [[ "$VPAGD2ODT_INSTALLED" != "true" ]]; then
-                whiptail --title "Error" --msgbox "Failed to install vpagd2odt via git clone.\n\nPlease install it manually." 10 50 2>&1 || true
+                whiptail --title "Error" --msgbox "Failed to install vpagd2odt via git clone.\n\nPlease install it manually or use the script method." 10 60 2>&1 || true
             fi
         fi
     fi
