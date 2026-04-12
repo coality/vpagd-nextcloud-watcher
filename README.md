@@ -39,7 +39,7 @@ https://github.com/coality/vpagd2odt
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/vpagd-nextcloud-watcher.git
+git clone https://github.com/coality/vpagd-nextcloud-watcher.git
 cd vpagd-nextcloud-watcher
 ```
 
