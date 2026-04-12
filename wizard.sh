@@ -122,7 +122,14 @@ else
                 fi
             fi
             if [[ "$VPAGD2ODT_INSTALLED" != "true" ]]; then
-                echo "[ERROR] Failed to install vpagd2odt via git clone."
+                echo "[ERROR] Failed to install vpagd2odt."
+                echo "[INFO] Please install vpagd2odt manually or choose a different method."
+                if whiptail --title "vpagd2odt Installation" --yesno "Installation failed.\n\nDo you want to enter the path manually?" 10 50 2>&1; then
+                    VPAGD2ODT_BIN=$(whiptail --title "vpagd2odt Binary" --inputbox "Enter the full path to the vpagd2odt binary:" 10 60 "/opt/vpagd2odt/vpagd2odt" 3>&1 1>&2 2>&3)
+                else
+                    echo "[ERROR] Cannot continue without vpagd2odt."
+                    exit 1
+                fi
             fi
         fi
     fi
