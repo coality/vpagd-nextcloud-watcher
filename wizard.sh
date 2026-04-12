@@ -90,35 +90,29 @@ else
                         ls -la
                         BUILD_OUTPUT=""
                         echo "[INFO] Building..."
-                        if [[ -f "build.sh" ]]; then
-                            echo "[INFO] Found build.sh, running..."
-                            chmod +x build.sh
-                            BUILD_OUTPUT=$(./build.sh 2>&1)
+                        if [[ -f "pyproject.toml" || -f "setup.py" ]]; then
+                            echo "[INFO] Found Python project, creating virtualenv..."
+                            VENV_DIR="${INSTALL_DIR}/venv"
+                            rm -rf "$VENV_DIR"
+                            echo "[INFO] Creating virtualenv at ${VENV_DIR}..."
+                            python3 -m venv "$VENV_DIR" 2>&1
                             BUILD_EXIT=$?
-                            echo "[DEBUG] build.sh exit code: $BUILD_EXIT"
-                            if [[ -f "dist/vpagd2odt/vpagd2odt" ]]; then
-                                mkdir -p "${INSTALL_DIR}"
-                                cp dist/vpagd2odt/vpagd2odt "${INSTALL_DIR}/vpagd2odt"
-                                chmod +x "${INSTALL_DIR}/vpagd2odt"
-                                VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
-                                VPAGD2ODT_INSTALLED=true
-                                echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
+                            if [[ $BUILD_EXIT -ne 0 ]]; then
+                                echo "[ERROR] Failed to create virtualenv"
                             else
-                                echo "[ERROR] build.sh ran but binary not found in dist/vpagd2odt/"
-                                echo "$BUILD_OUTPUT"
-                            fi
-                        elif [[ -f "pyproject.toml" ]]; then
-                            echo "[INFO] Found pyproject.toml, installing via pip..."
-                            BUILD_OUTPUT=$(pip install -e . 2>&1)
-                            BUILD_EXIT=$?
-                            echo "[DEBUG] pip install exit code: $BUILD_EXIT"
-                            if command -v vpagd2odt &>/dev/null; then
-                                VPAGD2ODT_BIN=$(command -v vpagd2odt)
-                                VPAGD2ODT_INSTALLED=true
-                                echo "[OK] vpagd2odt installed via pip: ${VPAGD2ODT_BIN}"
-                            else
-                                echo "[ERROR] pip install succeeded but vpagd2odt command not found in PATH"
-                                echo "$BUILD_OUTPUT"
+                                echo "[INFO] Installing package in virtualenv..."
+                                source "$VENV_DIR/bin/activate"
+                                pip install -e . 2>&1
+                                BUILD_EXIT=$?
+                                if [[ $BUILD_EXIT -eq 0 ]] && command -v vpagd2odt &>/dev/null; then
+                                    VPAGD2ODT_BIN="$VENV_DIR/bin/vpagd2odt"
+                                    VPAGD2ODT_INSTALLED=true
+                                    echo "[OK] vpagd2odt installed to ${VPAGD2ODT_BIN}"
+                                else
+                                    echo "[ERROR] pip install failed"
+                                    echo "$BUILD_OUTPUT"
+                                fi
+                                deactivate 2>/dev/null || true
                             fi
                         elif [[ -f "Makefile" ]]; then
                             echo "[INFO] Found Makefile, running make..."
