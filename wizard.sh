@@ -86,16 +86,27 @@ else
                         echo "$CLONE_OUTPUT"
                     elif [[ -d "$VPAGD2ODT_TEMP" ]]; then
                         cd "$VPAGD2ODT_TEMP"
+                        echo "[INFO] Contents of cloned repo:"
+                        ls -la
                         BUILD_OUTPUT=""
                         echo "[INFO] Building..."
                         if [[ -f "Makefile" ]]; then
+                            echo "[INFO] Found Makefile, running make..."
                             BUILD_OUTPUT=$(make 2>&1)
                             BUILD_EXIT=$?
+                            echo "[DEBUG] Make exit code: $BUILD_EXIT"
                         elif [[ -f "go.mod" ]]; then
+                            echo "[INFO] Found go.mod, running go build..."
                             BUILD_OUTPUT=$(go build -o vpagd2odt 2>&1)
                             BUILD_EXIT=$?
+                            echo "[DEBUG] Go build exit code: $BUILD_EXIT"
+                        else
+                            echo "[WARN] No Makefile or go.mod found."
+                            echo "[INFO] Available files: $(ls -1)"
+                            BUILD_OUTPUT="No build system found (no Makefile or go.mod)"
                         fi
                         if [[ -f "vpagd2odt" ]]; then
+                            mkdir -p "${INSTALL_DIR}"
                             cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
                             chmod +x "${INSTALL_DIR}/vpagd2odt"
                             VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
@@ -133,7 +144,7 @@ if [[ -z "$TARGET_DIR" ]]; then
 fi
 
 if [[ -z "$VPAGD2ODT_BIN" ]]; then
-    VPAGD2ODT_BIN=$(whiptail --title "vpagd2odt Binary" --inputbox "Enter the full path to the vpagd2odt binary:" 10 60 "/home/$USER/bin/vpagd2odt" 3>&1 1>&2 2>&3)
+    VPAGD2ODT_BIN=$(whiptail --title "vpagd2odt Binary" --inputbox "Enter the full path to the vpagd2odt binary:" 10 60 "/opt/vpagd2odt/vpagd2odt" 3>&1 1>&2 2>&3)
 fi
 
 LOG_FILE=$(whiptail --title "Log File" --inputbox "Enter the log file path:" 10 60 "$HOME/vpagd-nextcloud-watcher/vpagd-watcher.log" 3>&1 1>&2 2>&3)
