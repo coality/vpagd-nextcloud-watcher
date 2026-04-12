@@ -164,6 +164,8 @@ All configuration is done via the `config/vpagd-nextcloud-watcher.conf` file.
 | `LOG_FILE` | No | Path to the log file (default: `./vpagd-watcher.log`) |
 | `LOG_LEVEL` | No | Log level: `DEBUG`, `INFO`, `WARN`, `ERROR` (default: `INFO`) |
 | `LOCALE` | No | Output locale: `fr` for French, `en` for English (default: `fr`) |
+| `NEXTCLOUD_OCC` | No | Path to Nextcloud occ command (e.g., `/var/www/nextcloud/occ`) |
+| `NEXTCLOUD_USER` | No | Nextcloud username for scanning files |
 
 ### Configuration file format
 
@@ -185,6 +187,10 @@ LOG_LEVEL="INFO"
 
 # Output locale: fr (French) or en (English)
 LOCALE="fr"
+
+# Nextcloud occ command (optional, for file indexing)
+NEXTCLOUD_OCC="/var/www/nextcloud/occ"
+NEXTCLOUD_USER="username"
 ```
 
 ## How to Use

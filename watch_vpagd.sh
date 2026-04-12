@@ -8,6 +8,8 @@ VPAGD2ODT_BIN=""
 LOG_FILE=""
 LOG_LEVEL="INFO"
 LOCALE="fr"
+NEXTCLOUD_OCC=""
+NEXTCLOUD_USER=""
 
 declare -A FRENCH_MONTHS=(
     [01]="Janvier" [02]="Février" [03]="Mars" [04]="Avril"
@@ -201,6 +203,31 @@ convert_vpagd_to_odt() {
     return 0
 }
 
+scan_nextcloud() {
+    local target_file="$1"
+    local relative_path="${target_file#$TARGET_DIR/}"
+
+    if [[ -z "$NEXTCLOUD_OCC" ]]; then
+        log_debug "Nextcloud occ not configured, skipping scan"
+        return 0
+    fi
+
+    if [[ -z "$NEXTCLOUD_USER" ]]; then
+        log_warn "NEXTCLOUD_USER not configured, skipping Nextcloud scan"
+        return 0
+    fi
+
+    log_info "Scanning Nextcloud for: $relative_path"
+
+    if ! "$NEXTCLOUD_OCC" files:scan --path="$NEXTCLOUD_USER/files/$relative_path" 2>&1; then
+        log_warn "Nextcloud scan failed for: $relative_path"
+        return 1
+    fi
+
+    log_info "Nextcloud scan successful for: $relative_path"
+    return 0
+}
+
 process_vpagd_file() {
     local full_path="$1"
     local filename
@@ -222,7 +249,11 @@ process_vpagd_file() {
 
     local target_path="${TARGET_DIR}/${output_filename}"
 
-    convert_vpagd_to_odt "$full_path" "$target_path"
+    if ! convert_vpagd_to_odt "$full_path" "$target_path"; then
+        return 1
+    fi
+
+    scan_nextcloud "$target_path"
 }
 
 run_watcher() {
@@ -232,6 +263,13 @@ run_watcher() {
     log_info "Using vpagd2odt: $VPAGD2ODT_BIN"
     log_info "Locale: $LOCALE"
     log_info "Log file: $LOG_FILE"
+
+    if [[ -n "$NEXTCLOUD_OCC" ]]; then
+        log_info "Nextcloud occ: $NEXTCLOUD_OCC"
+        log_info "Nextcloud user: $NEXTCLOUD_USER"
+    else
+        log_info "Nextcloud occ: not configured"
+    fi
 
     inotifywait -m -r -e close_write -e moved_to \
         --format '%w%f' \
@@ -289,6 +327,12 @@ load_config() {
                 ;;
             LOCALE)
                 LOCALE="$value"
+                ;;
+            NEXTCLOUD_OCC)
+                NEXTCLOUD_OCC="$value"
+                ;;
+            NEXTCLOUD_USER)
+                NEXTCLOUD_USER="$value"
                 ;;
             *)
                 log_warn "Unknown config key: $key"
