@@ -165,7 +165,7 @@ All configuration is done via the `config/vpagd-nextcloud-watcher.conf` file.
 | `LOG_LEVEL` | No | Log level: `DEBUG`, `INFO`, `WARN`, `ERROR` (default: `INFO`) |
 | `LOCALE` | No | Output locale: `fr` for French, `en` for English (default: `fr`) |
 | `NEXTCLOUD_OCC` | No | Path to Nextcloud occ command (e.g., `/var/www/nextcloud/occ`) |
-| `NEXTCLOUD_USER` | No | Nextcloud username for scanning files |
+| `NEXTCLOUD_USER` | No | Nextcloud username whose directory will be rescanned |
 
 ### Configuration file format
 
@@ -350,6 +350,32 @@ The day of week is calculated from the date in the filename.
 - Format: `<Day> Mass <day> <month> <year>.odt`
 - Example: `Saturday Mass 07 March 2026.odt`
 - Day name is lowercase, month name is capitalized
+
+## Nextcloud Integration
+
+After each conversion, the watcher can scan the user's Nextcloud directory to ensure the new `.odt` file is indexed and visible in the Nextcloud web interface.
+
+### How it works
+
+When `NEXTCLOUD_OCC` and `NEXTCLOUD_USER` are configured, the watcher runs:
+```bash
+occ files:scan <username>
+```
+
+This rescans the entire Nextcloud directory for the specified user.
+
+### Configuration
+
+```ini
+NEXTCLOUD_OCC="/var/www/nextcloud/occ"
+NEXTCLOUD_USER="username"
+```
+
+### Requirements
+
+- The Nextcloud installation path must be correct
+- The user running the watcher must have permission to execute `occ`
+- Typically, the service runs as root or as the Nextcloud user (e.g., `www-data`)
 
 ## Systemd Usage
 
