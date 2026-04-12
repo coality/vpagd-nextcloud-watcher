@@ -100,10 +100,28 @@ else
                             BUILD_OUTPUT=$(go build -o vpagd2odt 2>&1)
                             BUILD_EXIT=$?
                             echo "[DEBUG] Go build exit code: $BUILD_EXIT"
+                        elif [[ -f "build.sh" ]]; then
+                            echo "[INFO] Found build.sh, running..."
+                            chmod +x build.sh
+                            BUILD_OUTPUT=$(./build.sh 2>&1)
+                            BUILD_EXIT=$?
+                            echo "[DEBUG] build.sh exit code: $BUILD_EXIT"
+                        elif [[ -f "pyproject.toml" ]]; then
+                            echo "[INFO] Found pyproject.toml, installing Python package..."
+                            BUILD_OUTPUT=$(pip install -e . 2>&1)
+                            BUILD_EXIT=$?
+                            echo "[DEBUG] pip install exit code: $BUILD_EXIT"
+                            if command -v vpagd2odt &>/dev/null; then
+                                VPAGD2ODT_BIN=$(command -v vpagd2odt)
+                                VPAGD2ODT_INSTALLED=true
+                                echo "[OK] vpagd2odt installed via pip: ${VPAGD2ODT_BIN}"
+                            else
+                                echo "[ERROR] pip install succeeded but vpagd2odt command not found"
+                            fi
                         else
-                            echo "[WARN] No Makefile or go.mod found."
+                            echo "[WARN] No build system found."
                             echo "[INFO] Available files: $(ls -1)"
-                            BUILD_OUTPUT="No build system found (no Makefile or go.mod)"
+                            BUILD_OUTPUT="No build system found"
                         fi
                         if [[ -f "vpagd2odt" ]]; then
                             mkdir -p "${INSTALL_DIR}"
