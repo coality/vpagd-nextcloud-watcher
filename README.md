@@ -40,10 +40,10 @@ The `install.sh` script will automatically install `vpagd2odt` if it is not foun
 
 ```bash
 # Initial installation or update
-./update_vpagd2odt.sh
+./install_vpagd2odt.sh
 
 # Check for updates
-./update_vpagd2odt.sh --check
+./install_vpagd2odt.sh --check
 ```
 
 For manual installation, see the [vpagd2odt repository](https://github.com/coality/vpagd2odt).
@@ -509,21 +509,21 @@ Since vpagd2odt is an external dependency, you may need to update it when new ve
 
 ### Using the update script
 
-The project includes an `update_vpagd2odt.sh` script to help keep vpagd2odt up to date.
+The project includes an `install_vpagd2odt.sh` script to help keep vpagd2odt up to date.
 
 **Check for updates:**
 ```bash
-./update_vpagd2odt.sh --check
+./install_vpagd2odt.sh --check
 ```
 
 **Update to the latest version:**
 ```bash
-./update_vpagd2odt.sh
+./install_vpagd2odt.sh
 ```
 
 **Specify a custom installation directory:**
 ```bash
-./update_vpagd2odt.sh --dir /opt/bin
+./install_vpagd2odt.sh --dir /opt/bin
 ```
 
 ### Update options

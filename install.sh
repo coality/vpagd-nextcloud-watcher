@@ -69,7 +69,7 @@ else
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo ""
         echo "  Installing vpagd2odt..."
-        if "${SCRIPT_DIR}/update_vpagd2odt.sh" --dir "${INSTALL_DIR}"; then
+        if "${SCRIPT_DIR}/install_vpagd2odt.sh" --dir "${INSTALL_DIR}"; then
             VPAGD2ODT_PATH="${INSTALL_DIR}/${BINARY_NAME}"
             echo "  [OK] vpagd2odt installed at ${VPAGD2ODT_PATH}"
         else
@@ -97,7 +97,7 @@ mkdir -p "${INSTALL_DIR}"
 echo ""
 echo "[4/5] Checking project files..."
 
-for file in "watch_vpagd.sh" "update_vpagd2odt.sh" "config/vpagd-nextcloud-watcher.conf.example" "systemd/vpagd-nextcloud-watcher.service"; do
+for file in "watch_vpagd.sh" "install_vpagd2odt.sh" "config/vpagd-nextcloud-watcher.conf.example" "systemd/vpagd-nextcloud-watcher.service"; do
     if [[ -f "${SCRIPT_DIR}/${file}" ]]; then
         echo "  [OK] ${file}"
     else
