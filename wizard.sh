@@ -42,16 +42,51 @@ else
         if [[ -z "$INSTALL_DIR" ]]; then
             INSTALL_DIR="$HOME/bin"
         fi
-        whiptail --title "Installing vpagd2odt" --msgbox "Installing vpagd2odt to ${INSTALL_DIR}..." 8 50 2>&1 || true
+
+        VPAGD_INSTALL_METHOD=$(whiptail --title "Installation Method" --menu "How do you want to install vpagd2odt?" 12 50 3 \
+            "script" "Use install script (auto-detect best method)" \
+            "clone" "Git clone and build from source" \
+            "manual" "I will install it manually" 3>&1 1>&2 2>&3) || VPAGD_INSTALL_METHOD="manual"
 
         mkdir -p "$INSTALL_DIR"
-        cd "$PROJECT_DIR"
-        if bash ./install_vpagd2odt.sh --dir "$INSTALL_DIR"; then
-            VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
-            VPAGD2ODT_INSTALLED=true
-            whiptail --title "Success" --msgbox "vpagd2odt installed successfully!" 8 40 2>&1 || true
-        else
-            whiptail --title "Error" --msgbox "Failed to install vpagd2odt.\n\nPlease install it manually." 10 50 2>&1 || true
+
+        if [[ "$VPAGD_INSTALL_METHOD" == "script" ]]; then
+            whiptail --title "Installing vpagd2odt" --msgbox "Installing vpagd2odt to ${INSTALL_DIR}..." 8 50 2>&1 || true
+            cd "$PROJECT_DIR"
+            if bash ./install_vpagd2odt.sh --dir "$INSTALL_DIR"; then
+                VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
+                VPAGD2ODT_INSTALLED=true
+                whiptail --title "Success" --msgbox "vpagd2odt installed successfully!" 8 40 2>&1 || true
+            else
+                whiptail --title "Error" --msgbox "Failed to install vpagd2odt.\n\nPlease install it manually." 10 50 2>&1 || true
+            fi
+        elif [[ "$VPAGD_INSTALL_METHOD" == "clone" ]]; then
+            VPAGD2ODT_TEMP=$(whiptail --title "Cloning vpagd2odt" --inputbox "Enter a temporary directory to clone into:" 10 60 "/tmp/vpagd2odt" 3>&1 1>&2 2>&3)
+            if [[ -n "$VPAGD2ODT_TEMP" ]]; then
+                whiptail --title "Cloning vpagd2odt" --msgbox "Cloning repository to ${VPAGD2ODT_TEMP}...\n\nThis requires git and go to be installed." 8 50 2>&1 || true
+                rm -rf "$VPAGD2ODT_TEMP"
+                git clone https://github.com/coality/vpagd2odt.git "$VPAGD2ODT_TEMP" 2>&1 | tail -5
+                if [[ -d "$VPAGD2ODT_TEMP" ]]; then
+                    cd "$VPAGD2ODT_TEMP"
+                    if [[ -f "Makefile" ]]; then
+                        make 2>&1 | tail -3
+                    elif [[ -f "go.mod" ]]; then
+                        go build -o vpagd2odt 2>&1 | tail -3
+                    fi
+                    if [[ -f "vpagd2odt" ]]; then
+                        cp vpagd2odt "${INSTALL_DIR}/vpagd2odt"
+                        chmod +x "${INSTALL_DIR}/vpagd2odt"
+                        VPAGD2ODT_BIN="${INSTALL_DIR}/vpagd2odt"
+                        VPAGD2ODT_INSTALLED=true
+                        whiptail --title "Success" --msgbox "vpagd2odt installed successfully to ${VPAGD2ODT_BIN}!" 8 50 2>&1 || true
+                    fi
+                    cd "$PROJECT_DIR"
+                    rm -rf "$VPAGD2ODT_TEMP"
+                fi
+            fi
+            if [[ "$VPAGD2ODT_INSTALLED" != "true" ]]; then
+                whiptail --title "Error" --msgbox "Failed to install vpagd2odt via git clone.\n\nPlease install it manually." 10 50 2>&1 || true
+            fi
         fi
     fi
 fi
