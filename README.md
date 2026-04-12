@@ -101,7 +101,7 @@ cd vpagd-nextcloud-watcher
 
 ### 2. Run the installer
 
-The installer checks prerequisites and guides you through setup:
+The installer checks prerequisites and guides you through setup. If `vpagd2odt` is not found, it will offer to install it automatically:
 
 ```bash
 ./install.sh
@@ -112,6 +112,12 @@ Or specify a custom installation path for vpagd2odt:
 ```bash
 ./install.sh /opt/bin
 ```
+
+The installer will:
+1. Check that prerequisites are installed (inotify-tools)
+2. Check if vpagd2odt is installed, offer to install it if not
+3. Create necessary directories
+4. Verify project files are present
 
 ### 3. Create the configuration file
 

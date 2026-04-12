@@ -25,6 +25,8 @@ if [[ -n "$1" ]]; then
     INSTALL_DIR="$1"
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo ""
 echo "[1/5] Checking prerequisites..."
 
@@ -61,15 +63,26 @@ elif [[ -f "${INSTALL_DIR}/${BINARY_NAME}" ]]; then
 else
     echo "  [WARNING] vpagd2odt not found"
     echo ""
-    echo "  Please install vpagd2odt manually:"
-    echo "    - From source: $REPO_URL"
-    echo "    - Or download a release binary"
-    echo "    - Then place it in: ${INSTALL_DIR}/${BINARY_NAME}"
-    echo "    - Or add it to your PATH"
-    echo ""
-    read -p "Continue anyway? (y/N) " -n 1 -r
+    echo "  Would you like to install vpagd2odt automatically?"
+    read -p "  (y/N): " -n 1 -r
     echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo "  Installing vpagd2odt..."
+        if "${SCRIPT_DIR}/update_vpagd2odt.sh" --dir "${INSTALL_DIR}"; then
+            VPAGD2ODT_PATH="${INSTALL_DIR}/${BINARY_NAME}"
+            echo "  [OK] vpagd2odt installed at ${VPAGD2ODT_PATH}"
+        else
+            echo "  [ERROR] Failed to install vpagd2odt"
+            exit 1
+        fi
+    else
+        echo ""
+        echo "  Please install vpagd2odt manually:"
+        echo "    - From source: $REPO_URL"
+        echo "    - Or download a release binary"
+        echo "    - Then place it in: ${INSTALL_DIR}/${BINARY_NAME}"
+        echo "    - Or add it to your PATH"
         exit 1
     fi
 fi
@@ -77,7 +90,6 @@ fi
 echo ""
 echo "[3/5] Creating directories..."
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "${SCRIPT_DIR}/config"
 mkdir -p "${SCRIPT_DIR}/systemd"
 mkdir -p "${INSTALL_DIR}"
