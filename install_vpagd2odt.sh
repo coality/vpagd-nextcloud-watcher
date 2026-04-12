@@ -187,7 +187,7 @@ update_vpagd2odt() {
     fi
 
     local latest_tag
-    latest_tag=$(git ls-remote --tags "$REPO_URL" 2>/dev/null | grep -E 'refs/tags/v[0-9]' | cut -d'/' -f3 | sed 's/^v//' | sort -V | tail -1)
+    latest_tag=$(git ls-remote --tags "$REPO_URL" 2>/dev/null | grep -E 'refs/tags/v[0-9].*$' | grep -v '\^{}' | cut -d'/' -f3 | sed 's/^v//' | sort -V | tail -1)
 
     if [[ -n "$latest_tag" ]]; then
         download_release "v${latest_tag}" "$os" "$arch" && return 0
