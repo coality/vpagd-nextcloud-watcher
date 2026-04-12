@@ -204,9 +204,6 @@ convert_vpagd_to_odt() {
 }
 
 scan_nextcloud() {
-    local target_file="$1"
-    local relative_path="${target_file#$TARGET_DIR/}"
-
     if [[ -z "$NEXTCLOUD_OCC" ]]; then
         log_debug "Nextcloud occ not configured, skipping scan"
         return 0
@@ -217,14 +214,14 @@ scan_nextcloud() {
         return 0
     fi
 
-    log_info "Scanning Nextcloud for: $relative_path"
+    log_info "Scanning Nextcloud directory: $TARGET_DIR"
 
-    if ! "$NEXTCLOUD_OCC" files:scan --path="$NEXTCLOUD_USER/files/$relative_path" 2>&1; then
-        log_warn "Nextcloud scan failed for: $relative_path"
+    if ! "$NEXTCLOUD_OCC" files:scan "$NEXTCLOUD_USER" 2>&1; then
+        log_warn "Nextcloud scan failed for directory: $TARGET_DIR"
         return 1
     fi
 
-    log_info "Nextcloud scan successful for: $relative_path"
+    log_info "Nextcloud scan successful"
     return 0
 }
 
