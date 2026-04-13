@@ -216,7 +216,7 @@ scan_nextcloud() {
 
     log_info "Scanning Nextcloud directory: $TARGET_DIR"
 
-    if ! "$NEXTCLOUD_OCC" files:scan "$NEXTCLOUD_USER" 2>&1; then
+    if ! sudo -u www-data bash -c "\$NEXTCLOUD_OCC files:scan --path \$NEXTCLOUD_USER/files/VideoPsalm/SlidesMesse" 2>&1; then
         log_warn "Nextcloud scan failed for directory: $TARGET_DIR"
         return 1
     fi
