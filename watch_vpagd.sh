@@ -10,6 +10,7 @@ LOG_LEVEL="INFO"
 LOCALE="fr"
 NEXTCLOUD_OCC=""
 NEXTCLOUD_USER=""
+LAST_DATE_FILE=""
 
 declare -A FRENCH_MONTHS=(
     [01]="Janvier" [02]="Février" [03]="Mars" [04]="Avril"
@@ -188,11 +189,33 @@ convert_date_to_localized() {
     esac
 }
 
+backup_existing_odt_if_needed() {
+    local target_file="$1"
+    local date_info="$2"
+    local source_file="$3"
+    
+    echo "$date_info" > "$LAST_DATE_FILE"
+}
+
 convert_vpagd_to_odt() {
     local source_file="$1"
     local target_file="$2"
 
     log_info "Converting: $source_file -> $target_file"
+
+    local initial_size=0
+    if [[ -f "$source_file" ]]; then
+        initial_size=$(stat -c '%s' "$source_file")
+        sleep 2
+        local new_size=$(stat -c '%s' "$source_file")
+        local attempts=0
+        while [[ "$new_size" != "$initial_size" && $attempts -lt 10 ]]; do
+            sleep 1
+            initial_size=$new_size
+            new_size=$(stat -c '%s' "$source_file")
+            ((attempts++))
+        done
+    fi
 
     if ! "$VPAGD2ODT_BIN" "$source_file" "$target_file"; then
         log_error "Conversion failed for: $source_file"
@@ -216,7 +239,7 @@ scan_nextcloud() {
 
     log_info "Scanning Nextcloud directory: $TARGET_DIR"
 
-    if ! sudo -u www-data $NEXTCLOUD_OCC files:scan --path $NEXTCLOUD_USER/files/VideoPsalm/SlidesMesse 2>&1; then
+    if ! $NEXTCLOUD_OCC files:scan --path $NEXTCLOUD_USER/files/VideoPsalm/SlidesMesse 2>&1; then
         log_warn "Nextcloud scan failed for directory: $TARGET_DIR"
         return 1
     fi
@@ -244,7 +267,11 @@ process_vpagd_file() {
     local output_filename
     output_filename=$(convert_date_to_localized "$year" "$month" "$day") || return 1
 
-    local target_path="${TARGET_DIR}/${output_filename}"
+    local timestamp
+    timestamp=$(date '+%d-%m-%Y %H:%M')
+    local target_path="${TARGET_DIR}/${output_filename} (version du ${timestamp}).odt"
+
+    backup_existing_odt_if_needed "$target_path" "$date_info" "$full_path"
 
     if ! convert_vpagd_to_odt "$full_path" "$target_path"; then
         return 1
@@ -331,6 +358,9 @@ load_config() {
             NEXTCLOUD_USER)
                 NEXTCLOUD_USER="$value"
                 ;;
+            LAST_DATE_FILE)
+                LAST_DATE_FILE="$value"
+                ;;
             *)
                 log_warn "Unknown config key: $key"
                 ;;
@@ -376,6 +406,10 @@ main() {
 
     if [[ -z "$LOG_FILE" ]]; then
         LOG_FILE="${script_dir}/vpagd-watcher.log"
+    fi
+
+    if [[ -z "$LAST_DATE_FILE" ]]; then
+        LAST_DATE_FILE="${script_dir}/.last_date"
     fi
 
     if ! validate_config; then
