@@ -167,7 +167,7 @@ convert_date_to_localized() {
                 log_error "Unknown day of week: $day_of_week"
                 return 1
             fi
-            echo "Messe du ${day_name} ${day} ${month_name} ${year}.odt"
+            echo "Messe du ${day_name^} ${day} ${month_name} ${year}"
             ;;
         en)
             month_name="${ENGLISH_MONTHS[$month]:-}"
@@ -180,7 +180,7 @@ convert_date_to_localized() {
                 log_error "Unknown day of week: $day_of_week"
                 return 1
             fi
-            echo "${day_name^} Mass ${day} ${month_name} ${year}.odt"
+            echo "${day_name^} Mass ${day} ${month_name} ${year}"
             ;;
         *)
             log_error "Unsupported locale: $locale (supported: fr, en)"
@@ -194,6 +194,16 @@ backup_existing_odt_if_needed() {
     local date_info="$2"
     local source_file="$3"
     
+    local archives_dir="${TARGET_DIR}/Archives"
+    
+    if [[ -f "$target_file" ]]; then
+        mkdir -p "$archives_dir"
+        local filename
+        filename=$(basename "$target_file")
+        mv "$target_file" "${archives_dir}/${filename}"
+        log_info "Moved to Archives: $filename"
+    fi
+    
     echo "$date_info" > "$LAST_DATE_FILE"
 }
 
@@ -202,20 +212,7 @@ convert_vpagd_to_odt() {
     local target_file="$2"
 
     log_info "Converting: $source_file -> $target_file"
-
-    local initial_size=0
-    if [[ -f "$source_file" ]]; then
-        initial_size=$(stat -c '%s' "$source_file")
-        sleep 2
-        local new_size=$(stat -c '%s' "$source_file")
-        local attempts=0
-        while [[ "$new_size" != "$initial_size" && $attempts -lt 10 ]]; do
-            sleep 1
-            initial_size=$new_size
-            new_size=$(stat -c '%s' "$source_file")
-            ((attempts++))
-        done
-    fi
+        rm -f "$target_file" 2>/dev/null
 
     if ! "$VPAGD2ODT_BIN" "$source_file" "$target_file"; then
         log_error "Conversion failed for: $source_file"
@@ -267,11 +264,24 @@ process_vpagd_file() {
     local output_filename
     output_filename=$(convert_date_to_localized "$year" "$month" "$day") || return 1
 
+    local archives_dir="${TARGET_DIR}/Archives"
+    mkdir -p "$archives_dir"
+    
+    local existing_files
+    existing_files=$(find "$TARGET_DIR" -maxdepth 1 -name "*.odt" -type f 2>/dev/null)
+    if [[ -n "$existing_files" ]]; then
+        while IFS= read -r file; do
+            local filename
+            filename=$(basename "$file")
+            mv "$file" "${archives_dir}/${filename}"
+            log_info "Moved to Archives: $filename"
+    /opt/vpagd-nextcloud-watcher/organize_archives.sh
+        done <<< "$existing_files"
+    fi
+    
     local timestamp
-    timestamp=$(date '+%d-%m-%Y %H:%M')
-    local target_path="${TARGET_DIR}/${output_filename} (version du ${timestamp}).odt"
-
-    backup_existing_odt_if_needed "$target_path" "$date_info" "$full_path"
+    timestamp=$(date '+%d-%m-%Y_%H-%M-%S')
+    local target_path="${TARGET_DIR}/${output_filename} (${timestamp}).odt"
 
     if ! convert_vpagd_to_odt "$full_path" "$target_path"; then
         return 1
